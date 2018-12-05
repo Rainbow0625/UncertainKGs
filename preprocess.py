@@ -8,23 +8,81 @@ import re
 # ConceptNet
 def preConceptNet():
     file = "E:\conceptnet\conceptnet-assertions-5.6.0.csv"
+    dataset = []  # store the string
+    fact_list = []  # store the index
+    ent_dic = {}
+    rel_dic = {}
+    max_p = -1
+    min_p = 100
+    num = 0
     with open(file, encoding='utf-8') as csv_file:
         data_raw = csv.reader(csv_file)
-        # total number = 32755210
-        dataset = []
+        # original total number = 32755210
         for row in data_raw:
-            row = ''.join(row).split('\t')  # row is a list
-            if re.match(r'/c/en/[a-zA-Z0-9_/]+\Z', row[2]) != None and re.match(r'/c/en/[a-zA-Z0-9_/]+\Z', row[3]) != None:
-                weight = "".join(re.findall(r'"weight": \d+.\d+', row[4])).split(':')  # ['"weight"', ' 1.0']
+            triple = ''.join(row).split('\t')  # row is a list
+            if re.match(r'/c/en/[a-zA-Z0-9_/]+\Z', triple[2]) != None and\
+                    re.match(r'/c/en/[a-zA-Z0-9_/]+\Z', triple[3]) != None:
+                weight = "".join(re.findall(r'"weight": \d+.\d+', triple[4])).split(':')  # ['"weight"', ' 1.0']
                 if( float(weight[1]) <= 3 ):
-                    li = [row[1], row[2], row[3], float(weight[1])]
-                    print(li)
+                    rel = triple[1]
+                    head = triple[2]
+                    tail = triple[3]
+                    score = float(weight[1])
+
+                    # statistic the score
+                    if score > max_p:
+                        max_p = score
+                    if score < min_p:
+                        min_p = score
+                    num = num + score
+
+                    # get the dataset
+                    li = [head, tail, rel, score]
+                    # print(li)
                     dataset.append(li)
-        print(len(dataset))
+
+                    # get the dataset
+                    li = [head, tail, rel, score]
+                    # print(li)
+                    dataset.append(li)
+
+                    # get relation, entity and fact
+                    if rel not in rel_dic.keys():
+                        rel_dic[rel] = len(rel_dic)
+                    r = rel_dic[rel]
+                    if head not in ent_dic.keys():
+                        ent_dic[head] = len(ent_dic)
+                    e1 = ent_dic[head]
+                    if tail not in ent_dic.keys():
+                        ent_dic[tail] = len(ent_dic)
+                    e2 = ent_dic[tail]
+                    li2 = [e1, e2, r, score]
+                    print(li2)
+                    fact_list.append(li2)
+        total = len(dataset)
+        print(total)
         # 3098816(only filter the '/c/en') from 0.1-22.891
         # 3054006(and '/c/en/[a-zA-Z0-9_/]+\Z') from 0.1-22.891
         # 3044163 and weight <= 3
-        return dataset
+
+        # save in the file
+        f = open('./Conceptnet/relation2id.txt', 'w')
+        f.write(str(len(rel_dic)) + "\n")
+        for key_name in rel_dic.keys():
+            f.write(str(key_name) + "\t" + str(rel_dic[key_name]) + "\n")
+
+        f = open('./Conceptnet/entity2id.txt', 'w')
+        f.write(str(len(ent_dic)) + "\n")
+        for key_name in ent_dic.keys():
+            f.write(str(key_name) + "\t" + str(ent_dic[key_name]) + "\n")
+
+        f = open('./Conceptnet/Fact.txt', 'w')
+        f.write(str(len(fact_list)) + "\n")
+        for line in fact_list:
+            f.write(str(line[0]) + " " + str(line[1]) + " " + str(line[2]) + "\n")
+        f.close()
+
+        return dataset, fact_list, rel_dic, ent_dic
 
 
 # NELL
@@ -41,45 +99,90 @@ def preNELL():
         except OverflowError:
             maxInt = int(maxInt/10)
             decrement = True
-    file = 'E:\_NELL\_NELL.csv'  # from 1.0 to 0.9000133499803894   avg. 0.9675292351354514
+    file = 'E:\_NELL\_NELL.csv'
+    dataset = []  # store the string
+    fact_list = []  # store the index
+    ent_dic = {}
+    rel_dic = {}
+    max_p = -1
+    min_p = 100
+    num = 0
     with open(file, encoding='utf-8') as csv_file:
         data_raw = csv.reader(csv_file)
         header = "".join(next(data_raw)).split('\t')  # 读取第一行每一列的标题
         # header: ['Entity', 'Relation', 'Value', 'Iteration of Promotion', 'Probability', 'Source',
         # 'Entity literalStrings','Value literalStrings', 'Best Entity literalString', 'Best Value literalString',
         # 'Categories for Entity', 'Categories for Value', 'Candidate Source']
-        dataset = []
-        max_p = -1
-        min_p = 100
-        num = 0
+
         for row in data_raw:
             triple = "".join(row).split('\t')
             # Relation "generalizations" should be filter, because it belongs to the "Category".
             if triple[1] == 'generalizations' or math.isnan(float(triple[4])):
                 continue
             else:
-                li = [triple[0], triple[1], triple[2], float(triple[4])]
-                if float(triple[4]) > max_p:
-                    max_p = float(triple[4])
-                if float(triple[4]) < min_p:
-                    min_p = float(triple[4])
-                num = num + float(triple[4])
-                print(li)
+                rel = triple[1]
+                head = triple[0]
+                tail = triple[2]
+                score = float(triple[4])
+
+                # statistic the score
+                if score > max_p:
+                    max_p = score
+                if score < min_p:
+                    min_p = score
+                num = num + score
+
+                # get the dataset
+                li = [head, tail, rel, score]
+                # print(li)
                 dataset.append(li)
+
+                # get relation, entity and fact
+                if rel not in rel_dic.keys():
+                    rel_dic[rel] = len(rel_dic)
+                r = rel_dic[rel]
+                if head not in ent_dic.keys():
+                    ent_dic[head] = len(ent_dic)
+                e1 = ent_dic[head]
+                if tail not in ent_dic.keys():
+                    ent_dic[tail] = len(ent_dic)
+                e2 = ent_dic[tail]
+                li2 = [e1, e2, r, score]
+                print(li2)
+                fact_list.append(li2)
+
         total = len(dataset)
         print(total)
-        print(max_p)
-        print(min_p)
-        print(num)
-        print(num / total)
+        # print(max_p)
+        # print(min_p)
+        # print(num)
+        # print(num / total)
         # 644208, from 1.0 to 0.9000133499803894   avg. 0.9675292351354514
-        return dataset
+
+        # save in the file
+        f = open('./NELL/relation2id.txt', 'w')
+        f.write(str(len(rel_dic)) + "\n")
+        for key_name in rel_dic.keys():
+            f.write(str(key_name) + "\t" + str(rel_dic[key_name]) + "\n")
+
+        f = open('./NELL/entity2id.txt', 'w')
+        f.write(str(len(ent_dic)) + "\n")
+        for key_name in ent_dic.keys():
+            f.write(str(key_name) + "\t" + str(ent_dic[key_name]) + "\n")
+
+        f = open('./NELL/Fact.txt', 'w')
+        f.write(str(len(fact_list)) + "\n")
+        for line in fact_list:
+            f.write(str(line[0]) + " " + str(line[1]) + " " + str(line[2]) + "\n")
+        f.close()
+
+        return dataset, fact_list, rel_dic, ent_dic
 
 
 def std_format(dataset):
-    
+    pass
 
 
 if __name__ == "__main__":
-    dataset = preNELL()
-    std_format(dataset)
+    # dataset, fact_list, rel_dic, ent_dic = preNELL()
+    dataset, fact_list, rel_dic, ent_dic = preConceptNet()
