@@ -99,7 +99,7 @@ def preNELL():
         except OverflowError:
             maxInt = int(maxInt/10)
             decrement = True
-    file = 'E:\_NELL\_NELL.csv'
+    file = 'E:/_NELLbig/_NELL.csv'
     dataset = []  # store the string
     fact_list = []  # store the index
     ent_dic = {}
@@ -116,14 +116,22 @@ def preNELL():
 
         for row in data_raw:
             triple = "".join(row).split('\t')
+
+            # it will be several scores in different iteration.
+            score_list = triple[4].strip('[').strip(']').split(' ')
+            max_s = -1.0
+            for item in score_list:
+                if float(item) > max_s:
+                    max_s = float(item)
+
             # Relation "generalizations" should be filter, because it belongs to the "Category".
-            if triple[1] == 'generalizations' or math.isnan(float(triple[4])):
+            if triple[1] == 'generalizations' or math.isnan(max_s):
                 continue
             else:
                 rel = triple[1]
                 head = triple[0]
                 tail = triple[2]
-                score = float(triple[4])
+                score = max_s
 
                 # statistic the score
                 if score > max_p:
@@ -184,5 +192,5 @@ def std_format(dataset):
 
 
 if __name__ == "__main__":
-    # dataset, fact_list, rel_dic, ent_dic = preNELL()
-    dataset, fact_list, rel_dic, ent_dic = preConceptNet()
+    dataset, fact_list, rel_dic, ent_dic = preNELL()
+    # dataset, fact_list, rel_dic, ent_dic = preConceptNet()
